@@ -1,4 +1,4 @@
-#Algoritmo utilizando o TITULO das noticias
+#Algoritmo utilizando o CORPO das noticias
 import os
 
 import collections
@@ -35,36 +35,41 @@ verdadeira = pd.concat([ciencia, cultura, economia, esportes, estilo, internacio
 
 #Noticias Falsas
 
-boatos = pd.read_csv(r'../scraper/falsa/boatos_org_titulo.csv')
-boatos = boatos.drop(columns=['quant','tema','url'])
+boatos = pd.read_csv(r'../scraper/falsa/boatos_org_corpo.csv')
+boatos = boatos.drop(columns=['id','link','timestamp'])
 
 
 ff = pd.read_csv(r'../scraper/falsa/fato_ou_fake.csv')
-ff = ff.drop(columns=['id','corpo','corpo_titulo','url'])
+ff = ff.drop(columns=['id','titulo','corpo_titulo','url'])
 
 falsa = pd.concat([boatos, ff])
 
 #Excluido colunas desnecesssarias
-verdadeira = verdadeira.drop(columns=['id', 'corpo', 'url'])
+verdadeira = verdadeira.drop(columns=['id', 'titulo', 'url'])
 
 #Verificando o shape
 print('shape noticias verdadeiras',verdadeira.shape)
 print('shape noticias falsa',falsa.shape)
 
 #Removendo espaços em branco, caracteres especiais e colocando em minusculo
-verdadeira['titulo'] = verdadeira['titulo'].str.replace(r'\d+',' ')
-verdadeira['titulo'] = verdadeira['titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
-verdadeira['titulo'] = verdadeira['titulo'].str.lower()
+verdadeira['corpo'] = verdadeira['corpo'].str.replace(r'\d+',' ')
+verdadeira['corpo'] = verdadeira['corpo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
+verdadeira['corpo'] = verdadeira['corpo'].str.lower()
 verdadeira = verdadeira.dropna()
 
 print(verdadeira.head())
 
-falsa['titulo'] = falsa['titulo'].str.replace(r'\d+',' ')
-falsa['titulo'] = falsa['titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
-falsa['titulo'] = falsa['titulo'].str.lower()
+falsa['corpo'] = falsa['corpo'].str.replace(r'\d+',' ')
+falsa['corpo'] = falsa['corpo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
+falsa['corpo'] = falsa['corpo'].str.lower()
 falsa = falsa.dropna()
 
 print(falsa.head())
+
+#Mantendo apenas os 500 primeiros caracteres
+verdadeira['corpo'] = verdadeira['corpo'].map(lambda x: str(x)[:500])
+
+falsa['corpo'] = falsa['corpo'].map(lambda y: str(y)[:500])
 
 #Atribuindo a classe classificadora
 # 1 para falso, 0 para verdadeiro
@@ -75,7 +80,7 @@ verdadeira['label'] = 0
 dados = pd.concat([verdadeira,falsa], axis=0, sort=True)
 
 y = dados.label.values
-x = dados.titulo.values
+x = dados.corpo.values
 
 #Dividindo entre teste e treino
 #Stratify = retorna mesma proporção
