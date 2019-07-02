@@ -1,4 +1,4 @@
-#Algoritmo utilizando o TITULO das noticias
+#Algoritmo utilizando o CORPO das noticias
 import os
 
 import collections
@@ -19,7 +19,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn import svm
-from sklearn.neural_network import MLPRegressor
+
 #Noticias verdadeiras
 
 ciencia = pd.read_csv(r'../scraper/verdadeira/ciencia.csv') 
@@ -31,40 +31,68 @@ internacional = pd.read_csv(r'../scraper/verdadeira/internacional.csv')
 politica = pd.read_csv(r'../scraper/verdadeira/politica.csv')
 tecnologia = pd.read_csv(r'../scraper/verdadeira/tecnologia.csv')
 
-verdadeira = pd.concat([ciencia, cultura, economia, esportes, estilo, internacional, politica, tecnologia])
+verdadeira_elpais = pd.concat([ciencia, cultura, economia, esportes, estilo, internacional, politica, tecnologia], sort=True)
 
 #Noticias Falsas
 
-boatos = pd.read_csv(r'../scraper/falsa/boatos_org_titulo.csv')
-boatos = boatos.drop(columns=['quant','tema','url'])
+boatos_corpo = pd.read_csv(r'../scraper/falsa/boatos_org_corpo.csv')
+boatos_corpo = boatos_corpo.drop(columns=['id','link','timestamp'])
+
+boatos_corpo.rename(columns = {'corpo': 'corpo_titulo'}, inplace=True)
+
+
+
+boatos_titulo = pd.read_csv(r'../scraper/falsa/boatos_org_titulo.csv')
+boatos_titulo = boatos_titulo.drop(columns=['quant','tema','url'])
+
+boatos_titulo.rename(columns = {'titulo': 'corpo_titulo'}, inplace=True)
+
 
 
 ff = pd.read_csv(r'../scraper/falsa/fato_ou_fake.csv')
-ff = ff.drop(columns=['id','corpo','corpo_titulo','url'])
+ff = ff.drop(columns=['id','titulo','corpo','url'])
 
-falsa = pd.concat([boatos, ff])
+falsa = pd.concat([boatos_titulo, boatos_corpo, ff], sort=True)
 
 #Excluido colunas desnecesssarias
-verdadeira = verdadeira.drop(columns=['id', 'corpo', 'url'])
+verdadeira_titulo = verdadeira_elpais.drop(columns=['id', 'corpo', 'url'])
+verdadeira_titulo.rename(columns = {'titulo':'corpo_titulo'}, inplace=True)
+
+print(verdadeira_titulo.head())
+
+verdadeira_corpo = verdadeira_elpais.drop(columns=['id', 'titulo', 'url'])
+verdadeira_corpo.rename(columns = {'corpo':'corpo_titulo'}, inplace=True)
+
+print(verdadeira_corpo.head())
+
+verdadeira = pd.concat([verdadeira_titulo, verdadeira_corpo], sort=True)
 
 #Verificando o shape
 print('shape noticias verdadeiras',verdadeira.shape)
 print('shape noticias falsa',falsa.shape)
 
+
+
+
 #Removendo espaços em branco, caracteres especiais e colocando em minusculo
-verdadeira['titulo'] = verdadeira['titulo'].str.replace(r'\d+',' ')
-verdadeira['titulo'] = verdadeira['titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
-verdadeira['titulo'] = verdadeira['titulo'].str.lower()
+verdadeira['corpo_titulo'] = verdadeira['corpo_titulo'].str.replace(r'\d+',' ')
+verdadeira['corpo_titulo'] = verdadeira['corpo_titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
+verdadeira['corpo_titulo'] = verdadeira['corpo_titulo'].str.lower()
 verdadeira = verdadeira.dropna()
 
 print(verdadeira.head())
 
-falsa['titulo'] = falsa['titulo'].str.replace(r'\d+',' ')
-falsa['titulo'] = falsa['titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
-falsa['titulo'] = falsa['titulo'].str.lower()
+falsa['corpo_titulo'] = falsa['corpo_titulo'].str.replace(r'\d+',' ')
+falsa['corpo_titulo'] = falsa['corpo_titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
+falsa['corpo_titulo'] = falsa['corpo_titulo'].str.lower()
 falsa = falsa.dropna()
 
 print(falsa.head())
+
+#Mantendo apenas os 500 primeiros caracteres
+verdadeira['corpo_titulo'] = verdadeira['corpo_titulo'].map(lambda x: str(x)[:500])
+
+falsa['corpo_titulo'] = falsa['corpo_titulo'].map(lambda y: str(y)[:500])
 
 #Atribuindo a classe classificadora
 # 1 para falso, 0 para verdadeiro
@@ -75,7 +103,7 @@ verdadeira['label'] = 0
 dados = pd.concat([verdadeira,falsa], axis=0, sort=True)
 
 y = dados.label.values
-x = dados.titulo.values
+x = dados.corpo_titulo.values
 
 #Dividindo entre teste e treino
 #Stratify = retorna mesma proporção
@@ -145,8 +173,3 @@ clf_svm_pipe = make_pipeline(TfidfVectorizer(), svm.SVC())
 scores = cross_val_score(clf_svm_pipe, x, y, cv=10)
 print('Validação Cruzada SVM', scores)
 
-
-est = MLPRegressor(activation='logistic')
-est.fit(x_train_tfidf, y_train)
-
-print('Acuracia Rede Neeural', est.score(x_test_tfidf, y_test))
