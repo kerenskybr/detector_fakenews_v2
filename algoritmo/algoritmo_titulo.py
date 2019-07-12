@@ -9,6 +9,7 @@ import pandas as pd
 
 import nltk
 
+from sklearn.externals import joblib
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -42,7 +43,10 @@ boatos = boatos.drop(columns=['quant','tema','url'])
 ff = pd.read_csv(r'../scraper/falsa/fato_ou_fake.csv')
 ff = ff.drop(columns=['id','corpo','corpo_titulo','url'])
 
-falsa = pd.concat([boatos, ff])
+saude_fake = pd.read_csv(r'../scraper/falsa/saude_gov_fake_news_titulo.csv')
+saude_fake = saude_fake.drop(columns=['id'])
+
+falsa = pd.concat([boatos, ff, saude_fake])
 
 #Excluido colunas desnecesssarias
 verdadeira = verdadeira.drop(columns=['id', 'corpo', 'url'])
@@ -57,14 +61,14 @@ verdadeira['titulo'] = verdadeira['titulo'].str.replace('|""=(),“{!‘?´$%[^\
 verdadeira['titulo'] = verdadeira['titulo'].str.lower()
 verdadeira = verdadeira.dropna()
 
-print(verdadeira.head())
+#print(verdadeira.head())
 
 falsa['titulo'] = falsa['titulo'].str.replace(r'\d+',' ')
 falsa['titulo'] = falsa['titulo'].str.replace('|""=(),“{!‘?´$%[^\w\s]','')
 falsa['titulo'] = falsa['titulo'].str.lower()
 falsa = falsa.dropna()
 
-print(falsa.head())
+#print(falsa.head())
 
 #Atribuindo a classe classificadora
 # 1 para falso, 0 para verdadeiro
@@ -98,14 +102,14 @@ x_test_tfidf = tfidf.transform(x_test)
 #Classificando com Regressao Logistica
 classificador = LogisticRegression()
 classificador.fit(x_train_tfidf, y_train)
-
+print('#' * 40)
 print('Acuracia do modelo Regressão Logística: {:.4f}'.format(classificador.score(x_test_tfidf, y_test)))
 
 clf_log_reg = make_pipeline(TfidfVectorizer(), LogisticRegression())
 
 scores_a = cross_val_score(clf_log_reg, x, y, cv=10)
-print('Validação Cruzada Reg Log', scores_a)
-
+print('Validação Cruzada Reg Log', np.mean(scores_a))
+print('#' * 40)
 #Classificando com AdaBoost
 
 clf_ada = AdaBoostClassifier(n_estimators=100, random_state=0)
@@ -116,8 +120,8 @@ print('Acuracia AdaBoost: {:.4f}'.format(clf_ada.score(x_test_tfidf, y_test)))
 clf_ada_pipe = make_pipeline(TfidfVectorizer(), AdaBoostClassifier())
 
 scores = cross_val_score(clf_ada_pipe, x, y, cv=10)
-print('Validação Cruzada Ada', scores)
-
+print('Validação Cruzada Ada', np.mean(scores))
+print('#' * 40)
 #Classificando com Naive Bayes
 
 clf_nb = MultinomialNB().fit(x_train_tfidf,y_train)
@@ -129,10 +133,10 @@ print('Acuracia do modelo Naive Bayes: {:.4f}'.format(np.mean(preditor_nb == y_t
 clf_naive = make_pipeline(TfidfVectorizer(), MultinomialNB())
 
 scores = cross_val_score(clf_naive, x, y, cv=10)
-print('Validação Cruzada Naive', scores)
-
+print('Validação Cruzada Naive', np.mean(scores))
+print('#' * 40)
 #Classificando com o SVM
-
+'''
 clf_svm = svm.SVC(gamma=0.001, kernel='linear')
 clf_svm.fit(x_train_tfidf, y_train)
 
@@ -143,10 +147,25 @@ print('Acuracia do modelo SVM: {:.4f}'.format(clf_svm.score(x_test_tfidf, y_test
 clf_svm_pipe = make_pipeline(TfidfVectorizer(), svm.SVC())
 
 scores = cross_val_score(clf_svm_pipe, x, y, cv=10)
-print('Validação Cruzada SVM', scores)
+print('Validação Cruzada SVM', np.mean(scores))
+print('#' * 40)
+'''
 
-
+'''
 est = MLPRegressor(activation='logistic')
 est.fit(x_train_tfidf, y_train)
 
-print('Acuracia Rede Neeural', est.score(x_test_tfidf, y_test))
+print('Acuracia Rede Neural', est.score(x_test_tfidf, y_test))
+'''
+
+
+arquivo = "saves/modelo_naive.sav"
+joblib.dump(clf_naive, arquivo)
+print('Modelo Naive Bayes salvo')
+
+tfidf_save = "saves/tfid.sav"
+joblib.dump(tfidf, tfidf_save)
+
+arquivo = "saves/modelo_reg_log.sav"
+joblib.dump(classificador, arquivo)
+print('Modelo Regressao Logistica salvo')
