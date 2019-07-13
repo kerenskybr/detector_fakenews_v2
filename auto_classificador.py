@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import numpy as np 
 
-
 import nltk
 
 from sklearn.externals import joblib
@@ -13,6 +12,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import make_pipeline
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn import svm
+from sklearn.neural_network import MLPRegressor
+
+from cria_carrega_cache import carregaCache
 
 
 class ProcessadorDados:
@@ -55,7 +60,7 @@ class ProcessadorDados:
             else:
                 lista_falsa.append(linha[1])
 
-        print('Criando arquivos csv para notícias falsas e verdadeiras.')
+        print('Criando csv para notícias falsas e verdadeiras.')
 
         verdadeira = pd.Series(lista_verdadeira)
         falsa = pd.Series(lista_falsa)
@@ -110,30 +115,88 @@ class ProcessadorDados:
 
         x_train_tfidf = tfidf.fit_transform(x_train)
         x_test_tfidf = tfidf.transform(x_test)
+
+        x_save = "cache/x_save.sav"
+        joblib.dump(x, x_save)
+
+        y_save = "cache/y_save.sav"
+        joblib.dump(y, y_save)
+
+        tfidf_treino = "cache/x_train_tfidf.sav"
+        joblib.dump(x_train_tfidf, tfidf_treino)
+
+        tfidf_teste = "cache/x_test_tfidf.sav"
+        joblib.dump(x_test_tfidf, tfidf_teste)
+
+        y_treino = "cache/y_train.sav"
+        joblib.dump(y_train, y_treino)
+
+        y_teste = "cache/y_test.sav"
+        joblib.dump(y_test, y_teste)
+
+        print('Modelo de Treino e Teste salvo no cache.')
         
 
     def modeloRegressaoLogistica(self):
+        
+        carregar = carregaCache()
+
         #Classificando com Regressao Logistica
         classificador = LogisticRegression()
-        classificador.fit(x_train_tfidf, y_train)
+        classificador.fit(carregar.x_train_tfidf, carregar.y_train)
         print('#' * 40)
-        print('Acuracia do modelo Regressão Logística: {:.4f}'.format(classificador.score(x_test_tfidf, y_test)))
+        print('Acuracia do modelo Regressão Logística: {:.4f} %'.format(classificador.score(carregar.x_test_tfidf, carregar.y_test)*100))
 
         clf_log_reg = make_pipeline(TfidfVectorizer(), LogisticRegression())
 
-        scores_a = cross_val_score(clf_log_reg, x, y, cv=10)
-        print('Validação Cruzada Reg Log', np.mean(scores_a))
+        scores_a = cross_val_score(clf_log_reg, carregar.x, carregar.y, cv=10)
+        print('Validação Cruzada Reg Log: {:.4f} %'.format(np.mean(scores_a)*100))
         print('#' * 40)
         
 
     def modeloNaiveBayes(self):
 
-        pass
+        #Classificando com Naive Bayes
+        carregar = carregaCache()
+
+        clf_nb = MultinomialNB().fit(carregar.x_train_tfidf,carregar.y_train)
+
+        preditor_nb = clf_nb.predict(carregar.x_test_tfidf)
+
+        print('Acuracia do modelo Naive Bayes: {:.4f} %'.format(np.mean(preditor_nb == carregar.y_test)*100))
+
+        clf_naive = make_pipeline(TfidfVectorizer(), MultinomialNB())
+
+        scores = cross_val_score(clf_naive, carregar.x, carregar.y, cv=10)
+        print('Validação Cruzada Naive: {:.4f} %'.format(np.mean(scores)*100))
+        print('#' * 40)
 
     def modeloRedeNeural(self):
 
-        pass
+        carregar = carregaCache()
 
+        est = MLPRegressor(activation='logistic')
+        est.fit(carregar.x_train_tfidf, carregar.y_train)
+
+        print('Acuracia Rede Neural: {:.4f} %'.format(est.score(carregar.x_test_tfidf, carregar.y_test)*100))
+
+    def modeloSVM(self):
+        #Classificando com o SVM
+
+        carregar = carregaCache()
+
+        clf_svm = svm.SVC(gamma=0.001, kernel='linear')
+        clf_svm.fit(carregar.x_train_tfidf, carregar.y_train)
+
+        clf_svm.predict(carregar.x_test_tfidf)
+
+        print('Acuracia do modelo SVM: {:.4f} %'.format(clf_svm.score(carregar.x_test_tfidf, carregar.y_test, sample_weight=None)*100))
+
+        clf_svm_pipe = make_pipeline(TfidfVectorizer(), svm.SVC())
+
+        scores = cross_val_score(clf_svm_pipe, carregar.x, carregar.y, cv=10)
+        print('Validação Cruzada SVM: {:.4f} %'.format(np.mean(scores)*100))
+        print('#' * 40)
 
 
 
@@ -146,7 +209,8 @@ class ProcessadorDados:
 if __name__ == "__main__":
 
     #Caminho para os dados que serão analisados
-    dados = pd.read_csv('scraper/falsa/saude_gov_fake_news_titulo.csv')
+    #dados = pd.read_csv('scraper/falsa/saude_gov_fake_news_titulo.csv')
+    dados = pd.read_csv('scraper/verdadeira/tecnologia.csv')
 
     
     """
@@ -160,4 +224,10 @@ if __name__ == "__main__":
     teste.preProcessamento()
 
     #Processando os dados gerados com RL
-    #teste.modeloRegressaoLogistica()
+    teste.modeloRegressaoLogistica()
+    #Processando os dados gerados com NB
+    teste.modeloNaiveBayes()
+    #Processando os dados gerados com SVM
+    teste.modeloSVM()
+
+    teste.modeloRedeNeural()
