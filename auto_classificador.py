@@ -9,7 +9,6 @@ from sklearn.externals import joblib
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.naive_bayes import MultinomialNB
@@ -49,7 +48,7 @@ class ProcessadorDados:
         
         for linha in arquivo_csv.values:
 
-            #linha[1] e a posicao que sera analisada, no caso a segunda coluna
+            #linha[1] é a posicao que sera analisada, no caso a segunda coluna
             titulo_fit = tfidf_load.transform([linha[1]])
 
             predito = carrega_modelo.predict(titulo_fit)
@@ -78,22 +77,22 @@ class ProcessadorDados:
         verdadeira.columns = ['titulo']
 
         #Removendo espaços em branco, caracteres especiais e colocando em minusculo
-        verdadeira['titulo'] = verdadeira['titulo'].str.replace(r'\d+',' ')
-        verdadeira['titulo'] = verdadeira['titulo'].str.replace('|""=(),“{!`ºª‘?´$%[^\w\s]','')
+        verdadeira['titulo'] = verdadeira['titulo'].str.replace(r'\d+', ' ')
+        verdadeira['titulo'] = verdadeira['titulo'].str.replace('|""=(),“{!`ºª‘?´$%[^\w\s]', '')
         verdadeira['titulo'] = verdadeira['titulo'].str.lower()
         verdadeira = verdadeira.dropna()
 
         #print(verdadeira.head())
 
         falsa['titulo'] = falsa['titulo'].str.replace(r'\d+',' ')
-        falsa['titulo'] = falsa['titulo'].str.replace('|""=(),“{!`ºª‘?´$%[^\w\s]','')
+        falsa['titulo'] = falsa['titulo'].str.replace('|""=(),“{!`ºª‘?´$%[^\w\s]', '')
         falsa['titulo'] = falsa['titulo'].str.lower()
         falsa = falsa.dropna()
 
         falsa['label'] = 1
         verdadeira['label'] = 0
 
-        dados = pd.concat([verdadeira,falsa], axis=0, sort=True)
+        dados = pd.concat([verdadeira, falsa], axis=0, sort=True)
 
         y = dados.label.values
         x = dados.titulo.values
@@ -109,9 +108,9 @@ class ProcessadorDados:
 
         pt_stopwords = set(nltk.corpus.stopwords.words('portuguese'))
 
-        tfidf = TfidfVectorizer(min_df = 1, strip_accents = 'unicode', max_features = 3000,
-                                analyzer = 'word', ngram_range = (1,3), sublinear_tf = 1, 
-                                encoding='utf-8', stop_words = pt_stopwords)
+        tfidf = TfidfVectorizer(min_df=1, strip_accents='unicode', max_features=3000,
+                                analyzer='word', ngram_range=(1,3), sublinear_tf=1, 
+                                encoding='utf-8', stop_words=pt_stopwords)
 
         x_train_tfidf = tfidf.fit_transform(x_train)
         x_test_tfidf = tfidf.transform(x_test)
@@ -135,26 +134,44 @@ class ProcessadorDados:
         joblib.dump(y_test, y_teste)
 
         print('Modelo de Treino e Teste salvo no cache.')
+
+
+    def mse_decorator(modelo_regressao_logistica):
+      
+        def wrapper(*args, **kwargs):
+
+            modelo_regressao_logistica()
+
+            carregar = carregaCache()
+
+            clf_log_reg = make_pipeline(TfidfVectorizer(), LogisticRegression())
+
+            scores_a = cross_val_score(clf_log_reg, carregar.x, carregar.y, cv=10)
+
+            return 'Validação Cruzada Reg Log', np.mean(scores_a)
+
+        return wrapper
         
 
-    def modeloRegressaoLogistica(self):
+    @mse_decorator
+    def modelo_regressao_logistica():
         
         carregar = carregaCache()
-
         #Classificando com Regressao Logistica
         classificador = LogisticRegression()
         classificador.fit(carregar.x_train_tfidf, carregar.y_train)
         print('#' * 40)
         print('Acuracia do modelo Regressão Logística: {:.4f} %'.format(classificador.score(carregar.x_test_tfidf, carregar.y_test)*100))
-
+        '''        
         clf_log_reg = make_pipeline(TfidfVectorizer(), LogisticRegression())
 
         scores_a = cross_val_score(clf_log_reg, carregar.x, carregar.y, cv=10)
         print('Validação Cruzada Reg Log: {:.4f} %'.format(np.mean(scores_a)*100))
         print('#' * 40)
-        
+        '''
+       
 
-    def modeloNaiveBayes(self):
+    def modelo_naive_bayes(self):
 
         #Classificando com Naive Bayes
         carregar = carregaCache()
@@ -171,7 +188,8 @@ class ProcessadorDados:
         print('Validação Cruzada Naive: {:.4f} %'.format(np.mean(scores)*100))
         print('#' * 40)
 
-    def modeloRedeNeural(self):
+
+    def modelo_rede_neural(self):
 
         carregar = carregaCache()
 
@@ -180,7 +198,8 @@ class ProcessadorDados:
 
         print('Acuracia Rede Neural: {:.4f} %'.format(est.score(carregar.x_test_tfidf, carregar.y_test)*100))
 
-    def modeloSVM(self):
+
+    def modelo_svm(self):
         #Classificando com o SVM
 
         carregar = carregaCache()
@@ -197,13 +216,6 @@ class ProcessadorDados:
         scores = cross_val_score(clf_svm_pipe, carregar.x, carregar.y, cv=10)
         print('Validação Cruzada SVM: {:.4f} %'.format(np.mean(scores)*100))
         print('#' * 40)
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -224,10 +236,10 @@ if __name__ == "__main__":
     teste.preProcessamento()
 
     #Processando os dados gerados com RL
-    teste.modeloRegressaoLogistica()
+    teste.modelo_regressao_logistica()
     #Processando os dados gerados com NB
-    teste.modeloNaiveBayes()
+    teste.modelo_naive_bayes()
     #Processando os dados gerados com SVM
-    teste.modeloSVM()
+    teste.modelo_svm()
 
-    teste.modeloRedeNeural()
+   
