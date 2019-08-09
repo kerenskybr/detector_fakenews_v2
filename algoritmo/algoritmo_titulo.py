@@ -86,7 +86,7 @@ x = dados.titulo.values
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.25, stratify=y)
 
 #Baixando o 'bag of words'
-#nltk.download('stopwords')
+nltk.download('stopwords')
 
 #Vetorizando palavras para numeros
 
