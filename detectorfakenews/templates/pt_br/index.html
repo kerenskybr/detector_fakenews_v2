@@ -1,5 +1,7 @@
-<!doctype html>
-<html lang="en">
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="pt_br">
 
 <head>
     <!-- Required meta tags -->
@@ -9,11 +11,11 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <!-- Meu css personalizado -->
-    <link rel="stylesheet" href="/home/roger/Documents/detector_fakenews_v2/detectorfakenews/static/meu.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='meu.css') }}" />
 
     <title>Detector Fakenews</title>
 </head>
-<link rel="shortcut icon" href="/home/roger/Documents/detector_fakenews_v2/detectorfakenews/static/img/favicon.png">
+<link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.png') }}">
 <body>
 
     <header class="site-header">
@@ -24,13 +26,13 @@
             </div>
             <div class="navbar-nav mr-4">
                 <a class="nav-item" href="#">
-                    <img src="/home/roger/Documents/detector_fakenews_v2/detectorfakenews/static/img/brazil.png">
+                    <img src="{{ url_for('static', filename='img/brazil.png') }}">
                 </a>
 
             </div>
             <div class="navbar-nav mr-4">
                 <a class="nav-item" href="#">
-                    <img src="/home/roger/Documents/detector_fakenews_v2/detectorfakenews/static/img/united-states.png">
+                    <img src="{{ url_for('static', filename='img/united-states.png') }}">
                 </a>
 
             </div>
@@ -137,3 +139,5 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
 </html>
+
+{% endblock content %}
